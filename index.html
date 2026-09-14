@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>USJ Canlı Express Pass Eşleştirici & Günlük Planlayıcı</title>
+  <title>USJ Express Pass Finder & Itinerary Planner</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
@@ -18,10 +18,19 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <span class="text-2xl">⚡</span>
-        <h1 class="text-lg sm:text-xl font-black tracking-tight">USJ Canlı Express Bilet Eşleştirici</h1>
+        <h1 class="text-lg sm:text-xl font-black tracking-tight" data-i18n="appTitle">USJ Live Express Pass Matcher</h1>
       </div>
-      <div class="text-xs font-semibold bg-white/20 px-3 py-1.5 rounded-lg backdrop-blur-sm">
-        Resmi Sistem Verisiyle Entegre
+      
+      <div class="flex items-center space-x-3">
+        <div class="hidden sm:block text-xs font-semibold bg-white/20 px-3 py-1.5 rounded-lg backdrop-blur-sm" data-i18n="officialSync">
+          Synced with Official Data
+        </div>
+
+        <!-- Dil Seçici (Language Switcher) -->
+        <div class="inline-flex bg-slate-900/40 p-1 rounded-lg border border-white/20 text-xs font-bold">
+          <button id="lang-en" onclick="setLanguage('en')" class="px-2.5 py-1 rounded transition bg-white text-slate-900 shadow">EN</button>
+          <button id="lang-tr" onclick="setLanguage('tr')" class="px-2.5 py-1 rounded transition text-white/80 hover:text-white">TR</button>
+        </div>
       </div>
     </div>
   </header>
@@ -36,19 +45,20 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 gap-3">
           <div>
             <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
-              <i data-lucide="list-ordered" class="w-5 h-5 text-blue-600"></i> Gün Planım & Express Seçimi
+              <i data-lucide="list-ordered" class="w-5 h-5 text-blue-600"></i>
+              <span data-i18n="plannerTitle">My Itinerary & Express Request</span>
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">
-              Hızlı geçmek istediğiniz ünitelerde <strong>⚡ Express İste</strong> kutusunu işaretleyin.
+            <p class="text-xs text-slate-500 mt-0.5" data-i18n="plannerSubtitle">
+              Check <strong>⚡ Request Express</strong> on rides you want to bypass regular lines for.
             </p>
           </div>
           <div class="flex items-center space-x-2">
             <!-- Kopyalama Butonu -->
             <button onclick="copyPlanToClipboard()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-              <span id="copyBtnText">Planı Kopyala</span>
+              <span id="copyBtnText" data-i18n="copyPlan">Copy Plan</span>
             </button>
-            <button onclick="clearPlan()" class="text-xs font-bold text-rose-600 hover:text-rose-700 px-2 py-1.5">Temizle</button>
+            <button onclick="clearPlan()" class="text-xs font-bold text-rose-600 hover:text-rose-700 px-2 py-1.5" data-i18n="clearAll">Clear</button>
           </div>
         </div>
 
@@ -58,7 +68,8 @@
 
         <div class="pt-2">
           <a href="#attractionDirectory" class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700">
-            <i data-lucide="plus-circle" class="w-4 h-4"></i> Aşağıdaki Aktivite Listesinden Plana Ekle
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span data-i18n="addFromList">Add activities from directory below</span>
           </a>
         </div>
       </div>
@@ -68,13 +79,16 @@
         <div class="border-b pb-3">
           <div class="flex items-center justify-between">
             <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
-              <i data-lucide="check-check" class="w-5 h-5 text-emerald-600"></i> Uygun Express Biletler
+              <i data-lucide="check-check" class="w-5 h-5 text-emerald-600"></i>
+              <span data-i18n="matchingPassesTitle">Matching Express Passes</span>
             </h3>
             <span id="requestedBadge" class="text-xs font-bold px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
-              0 Express Talebi
+              0 Express Requests
             </span>
           </div>
-          <p class="text-xs text-slate-500 mt-1">İşaretlediğiniz ünitelerin tamamını içeren resmi bilet paketleri:</p>
+          <p class="text-xs text-slate-500 mt-1" data-i18n="matchingPassesSubtitle">
+            Official pass combinations covering all your requested rides:
+          </p>
         </div>
 
         <div id="matchingPassesContainer" class="space-y-3.5 max-h-[600px] overflow-y-auto pr-1">
@@ -88,19 +102,19 @@
     <section id="attractionDirectory" class="space-y-6">
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h3 class="text-2xl font-black text-slate-900">Aktivite & Ünite Listesi</h3>
-          <p class="text-xs text-slate-500 mt-1">Planınıza eklemek istediğiniz aktiviteleri seçin.</p>
+          <h3 class="text-2xl font-black text-slate-900" data-i18n="directoryTitle">Attractions & Venues Directory</h3>
+          <p class="text-xs text-slate-500 mt-1" data-i18n="directorySubtitle">Browse and add rides, dining, and shows to your day plan.</p>
         </div>
 
         <div class="flex gap-2">
           <select id="zoneFilter" onchange="renderDirectory()" class="text-xs border border-slate-300 rounded-lg p-2 bg-white">
-            <option value="all">Tüm Alanlar</option>
+            <option value="all">All Zones</option>
             <option value="Super Nintendo World">Super Nintendo World</option>
             <option value="Harry Potter">The Wizarding World of Harry Potter</option>
             <option value="Minion Park">Minion Park</option>
             <option value="Jurassic Park">Jurassic Park</option>
             <option value="Hollywood / NY">Hollywood / New York</option>
-            <option value="WaterWorld / Shows">Canlı Şovlar & Su Dünyası</option>
+            <option value="WaterWorld / Shows">Live Shows & WaterWorld</option>
           </select>
         </div>
       </div>
@@ -113,7 +127,99 @@
   </main>
 
   <script>
-    // 1. Siteden çıkarılan tam Express Pass veri tabanı
+    // Çok Dilli Sözlük (Dictionary)
+    const translations = {
+      en: {
+        appTitle: "USJ Live Express Pass Matcher",
+        officialSync: "Synced with Official Data",
+        plannerTitle: "My Itinerary & Express Request",
+        plannerSubtitle: "Check <strong>⚡ Request Express</strong> on rides you want to bypass regular lines for.",
+        copyPlan: "Copy Plan",
+        copied: "Copied! ✓",
+        clearAll: "Clear",
+        addFromList: "Add activities from directory below",
+        matchingPassesTitle: "Matching Express Passes",
+        matchingPassesSubtitle: "Official pass combinations covering all your requested rides:",
+        directoryTitle: "Attractions & Venues Directory",
+        directorySubtitle: "Browse and add rides, dining, and shows to your day plan.",
+        allZones: "All Zones",
+        noExpressRequested: "No rides marked with 'Request Express'. Please select from the list.",
+        emptyPlan: "Your itinerary is empty. Add activities from the catalog below.",
+        fullMatchBadge: "✓ 100% Match (Covers All)",
+        matchBadge: "Match",
+        snwIncluded: "🍄 Guaranteed Super Nintendo World Timed Entry",
+        snwNotIncluded: "⚠️ No Guaranteed Nintendo Entry",
+        passPackageScope: "Pass Coverage:",
+        requestExpressLabel: "⚡ Request Express",
+        standbyOnlyLabel: "Standby / QR Queue Only",
+        addToPlanBtn: "Add to Plan",
+        expressEligibleTag: "Express Eligible",
+        diningStandbyTag: "Dining / Standby",
+        confirmClear: "Clear your entire day plan?",
+        noItemsToCopy: "No items to copy in your itinerary."
+      },
+      tr: {
+        appTitle: "USJ Canlı Express Bilet Eşleştirici",
+        officialSync: "Resmi Sistem Verisiyle Entegre",
+        plannerTitle: "Gün Planım & Express Seçimi",
+        plannerSubtitle: "Hızlı geçmek istediğiniz ünitelerde <strong>⚡ Express İste</strong> kutusunu işaretleyin.",
+        copyPlan: "Planı Kopyala",
+        copied: "Kopyalandı! ✓",
+        clearAll: "Temizle",
+        addFromList: "Aşağıdaki Aktivite Listesinden Plana Ekle",
+        matchingPassesTitle: "Uygun Express Biletler",
+        matchingPassesSubtitle: "İşaretlediğiniz ünitelerin tamamını içeren resmi bilet paketleri:",
+        directoryTitle: "Aktivite & Ünite Listesi",
+        directorySubtitle: "Planınıza eklemek istediğiniz aktiviteleri seçin.",
+        allZones: "Tüm Alanlar",
+        noExpressRequested: "Planınızda 'Express İste' seçili ünite bulunmuyor. Sol taraftan seçim yapın.",
+        emptyPlan: "Günlük planınız boş. Aşağıdan aktivite ekleyin.",
+        fullMatchBadge: "✓ %100 Eşleşti (Hepsini İçerir)",
+        matchBadge: "Eşleşme",
+        snwIncluded: "🍄 Super Nintendo World Zamanlı Giriş Dahil",
+        snwNotIncluded: "⚠️ Nintendo Giriş Garantisi Yok",
+        passPackageScope: "Paket Kapsamı:",
+        requestExpressLabel: "⚡ Express İste",
+        standbyOnlyLabel: "Express Yok (Standby/QR)",
+        addToPlanBtn: "Plana Ekle",
+        expressEligibleTag: "Express Destekli",
+        diningStandbyTag: "Yemek / Standby",
+        confirmClear: "Tüm günlük plan temizlensin mi?",
+        noItemsToCopy: "Kopyalanacak bir aktivite bulunmuyor."
+      }
+    };
+
+    // Varsayılan dil: EN
+    let currentLang = localStorage.getItem("usj_lang") || "en";
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem("usj_lang", lang);
+
+      // Buton vurguları
+      if (lang === 'en') {
+        document.getElementById('lang-en').className = "px-2.5 py-1 rounded transition bg-white text-slate-900 shadow";
+        document.getElementById('lang-tr').className = "px-2.5 py-1 rounded transition text-white/80 hover:text-white";
+      } else {
+        document.getElementById('lang-tr').className = "px-2.5 py-1 rounded transition bg-white text-slate-900 shadow";
+        document.getElementById('lang-en').className = "px-2.5 py-1 rounded transition text-white/80 hover:text-white";
+      }
+
+      // Statik metinleri güncelle
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (translations[currentLang][key]) {
+          el.innerHTML = translations[currentLang][key];
+        }
+      });
+
+      // Dinamik listeleri yeniden çiz
+      renderItinerary();
+      findMatchingPasses();
+      renderDirectory();
+    }
+
+    // 1. Resmi Express Pass Veri Tabanı[cite: 1]
     const expressPassCatalog = [
       {
         id: "premium-unlimited",
@@ -204,7 +310,7 @@
           ["flying-dinosaur"]
         ],
         rawList: [
-          "MarioKart: Koopa's Challenge (2 kez)", "Harry Potter and the Forbidden Journey",
+          "MarioKart: Koopa's Challenge (2x)", "Harry Potter and the Forbidden Journey",
           "Hollywood Dream - The Ride", "The Flying Dinosaur"
         ]
       },
@@ -559,43 +665,36 @@
       }
     ];
 
-    // 2. Parktaki Tüm Aktiviteler Kataloğu
+    // 2. Aktivite Kataloğu (TR/EN İsimler)
     const attractionCatalog = [
-      // Nintendo
-      { id: "mario-kart", name: "Mario Kart: Koopa's Challenge", zone: "Super Nintendo World", category: "ride" },
-      { id: "mine-cart", name: "Mine Cart Madness (Donkey Kong)", zone: "Super Nintendo World", category: "ride" },
-      { id: "yoshi", name: "Yoshi's Adventure", zone: "Super Nintendo World", category: "ride" },
-      { id: "toad-cafe", name: "Kinopio's Cafe (Toad Cafe)", zone: "Super Nintendo World", category: "dining", noExpress: true },
-      { id: "power-up-band", name: "Power-Up Band Key Challenges", zone: "Super Nintendo World", category: "toy", noExpress: true },
+      { id: "mario-kart", name_en: "Mario Kart: Koopa's Challenge", name_tr: "Mario Kart: Koopa's Challenge", zone: "Super Nintendo World", category: "ride" },
+      { id: "mine-cart", name_en: "Mine Cart Madness (Donkey Kong)", name_tr: "Mine Cart Madness (Donkey Kong)", zone: "Super Nintendo World", category: "ride" },
+      { id: "yoshi", name_en: "Yoshi's Adventure", name_tr: "Yoshi's Adventure", zone: "Super Nintendo World", category: "ride" },
+      { id: "toad-cafe", name_en: "Kinopio's Cafe (Toad Cafe)", name_tr: "Kinopio's Cafe (Toad Cafe)", zone: "Super Nintendo World", category: "dining", noExpress: true },
+      { id: "power-up-band", name_en: "Power-Up Band Key Challenges", name_tr: "Power-Up Band Anahtar Görevleri", zone: "Super Nintendo World", category: "toy", noExpress: true },
 
-      // Harry Potter
-      { id: "potter-forbidden", name: "Harry Potter and the Forbidden Journey", zone: "Harry Potter", category: "ride" },
-      { id: "hippogriff", name: "Flight of the Hippogriff", zone: "Harry Potter", category: "ride" },
-      { id: "three-brooms", name: "Three Broomsticks & Butterbeer", zone: "Harry Potter", category: "dining", noExpress: true },
+      { id: "potter-forbidden", name_en: "Harry Potter and the Forbidden Journey", name_tr: "Harry Potter and the Forbidden Journey", zone: "Harry Potter", category: "ride" },
+      { id: "hippogriff", name_en: "Flight of the Hippogriff", name_tr: "Flight of the Hippogriff", zone: "Harry Potter", category: "ride" },
+      { id: "three-brooms", name_en: "Three Broomsticks & Butterbeer", name_tr: "Üç Süpürge (Three Broomsticks)", zone: "Harry Potter", category: "dining", noExpress: true },
 
-      // Minion
-      { id: "minion-mayhem", name: "Despicable Me: Minion Mayhem", zone: "Minion Park", category: "ride" },
-      { id: "minion-blast", name: "Illumination’s Villain-Con Minion Blast", zone: "Minion Park", category: "ride" },
+      { id: "minion-mayhem", name_en: "Despicable Me: Minion Mayhem", name_tr: "Despicable Me: Minion Mayhem", zone: "Minion Park", category: "ride" },
+      { id: "minion-blast", name_en: "Illumination’s Villain-Con Minion Blast", name_tr: "Illumination’s Villain-Con Minion Blast", zone: "Minion Park", category: "ride" },
 
-      // Jurassic Park
-      { id: "flying-dinosaur", name: "The Flying Dinosaur", zone: "Jurassic Park", category: "ride" },
-      { id: "jurassic-ride", name: "Jurassic Park - The Ride", zone: "Jurassic Park", category: "ride" },
+      { id: "flying-dinosaur", name_en: "The Flying Dinosaur", name_tr: "The Flying Dinosaur", zone: "Jurassic Park", category: "ride" },
+      { id: "jurassic-ride", name_en: "Jurassic Park - The Ride", name_tr: "Jurassic Park - The Ride", zone: "Jurassic Park", category: "ride" },
 
-      // Hollywood & New York
-      { id: "hollywood-dream", name: "Hollywood Dream - The Ride", zone: "Hollywood / NY", category: "ride" },
-      { id: "hollywood-backdrop", name: "Hollywood Dream: Backdrop", zone: "Hollywood / NY", category: "ride" },
-      { id: "detective-conan", name: "Detective Conan 4-D Live Show", zone: "Hollywood / NY", category: "show" },
-      { id: "jaws", name: "JAWS (Boat Tour)", zone: "Hollywood / NY", category: "ride" },
+      { id: "hollywood-dream", name_en: "Hollywood Dream - The Ride", name_tr: "Hollywood Dream - The Ride", zone: "Hollywood / NY", category: "ride" },
+      { id: "hollywood-backdrop", name_en: "Hollywood Dream: Backdrop", name_tr: "Hollywood Dream: Backdrop", zone: "Hollywood / NY", category: "ride" },
+      { id: "detective-conan", name_en: "Detective Conan 4-D Live Show", name_tr: "Detective Conan 4-D Live Show", zone: "Hollywood / NY", category: "show" },
+      { id: "jaws", name_en: "JAWS (Boat Tour)", name_tr: "JAWS (Köpekbalığı Bot Turu)", zone: "Hollywood / NY", category: "ride" },
 
-      // Halloween & Events
-      { id: "resident-evil", name: "Resident Evil Requiem: The Dive", zone: "Hollywood / NY", category: "ride" },
-      { id: "sadako-curse", name: "SADAKO'S CURSE: DARK HORROR RIDE", zone: "Hollywood / NY", category: "ride" },
-      { id: "factory-fear", name: "Factory of Fear: Zombie Tour", zone: "Hollywood / NY", category: "show" },
-      { id: "chainsaw-man", name: "Chainsaw Man: The Chaos 4-D", zone: "Hollywood / NY", category: "show" },
+      { id: "resident-evil", name_en: "Resident Evil Requiem: The Dive", name_tr: "Resident Evil Requiem: The Dive", zone: "Hollywood / NY", category: "ride" },
+      { id: "sadako-curse", name_en: "SADAKO'S CURSE: DARK HORROR RIDE", name_tr: "SADAKO'S CURSE: DARK HORROR RIDE", zone: "Hollywood / NY", category: "ride" },
+      { id: "factory-fear", name_en: "Factory of Fear: Zombie Tour", name_tr: "Factory of Fear: Zombie Tour", zone: "Hollywood / NY", category: "show" },
+      { id: "chainsaw-man", name_en: "Chainsaw Man: The Chaos 4-D", name_tr: "Chainsaw Man: The Chaos 4-D", zone: "Hollywood / NY", category: "show" },
 
-      // Şovlar & Su Dünyası
-      { id: "show-waterworld", name: "WaterWorld: Canlı Su & Dublör Şovu", zone: "WaterWorld / Shows", category: "show" },
-      { id: "show-monsters-live", name: "Universal Monsters Live Rock & Roll", zone: "WaterWorld / Shows", category: "show" }
+      { id: "show-waterworld", name_en: "WaterWorld: Live Stunt Show", name_tr: "WaterWorld: Canlı Su & Dublör Şovu", zone: "WaterWorld / Shows", category: "show" },
+      { id: "show-monsters-live", name_en: "Universal Monsters Live Rock & Roll", name_tr: "Universal Monsters Live Rock & Roll", zone: "WaterWorld / Shows", category: "show" }
     ];
 
     // Varsayılan Kullanıcı Planı
@@ -606,17 +705,22 @@
       { uid: "p-4", attractionId: "potter-forbidden", time: "15:00", expressChecked: true }
     ];
 
+    function getAttractionName(attr) {
+      if (!attr) return "";
+      return currentLang === 'tr' ? attr.name_tr : attr.name_en;
+    }
+
     // Metin Kopyalama Fonksiyonu
     function copyPlanToClipboard() {
+      const t = translations[currentLang];
       if (userPlan.length === 0) {
-        alert("Kopyalanacak bir aktivite bulunmuyor.");
+        alert(t.noItemsToCopy);
         return;
       }
 
-      // İstenen format: - 09:00 | Aktivite Adı
       const formattedLines = userPlan.map(item => {
         const attr = attractionCatalog.find(a => a.id === item.attractionId);
-        const name = attr ? attr.name : "Aktivite";
+        const name = getAttractionName(attr) || "Activity";
         const expressTag = item.expressChecked ? " (⚡ Express)" : "";
         return `- ${item.time} | ${name}${expressTag}`;
       });
@@ -625,13 +729,12 @@
 
       navigator.clipboard.writeText(textToCopy).then(() => {
         const btnText = document.getElementById("copyBtnText");
-        const original = btnText.innerText;
-        btnText.innerText = "Kopyalandı! ✓";
+        btnText.innerText = t.copied;
         setTimeout(() => {
-          btnText.innerText = original;
+          btnText.innerText = t.copyPlan;
         }, 2000);
       }).catch(err => {
-        console.error("Panoya kopyalanamadı:", err);
+        console.error("Clipboard copy error:", err);
       });
     }
 
@@ -680,7 +783,8 @@
     }
 
     function clearPlan() {
-      if (confirm("Tüm günlük plan temizlensin mi?")) {
+      const t = translations[currentLang];
+      if (confirm(t.confirmClear)) {
         userPlan = [];
         renderItinerary();
         findMatchingPasses();
@@ -688,11 +792,12 @@
     }
 
     function findMatchingPasses() {
+      const t = translations[currentLang];
       const requestedIds = userPlan
         .filter(item => item.expressChecked)
         .map(item => item.attractionId);
 
-      document.getElementById("requestedBadge").innerText = `${requestedIds.length} Express Talebi`;
+      document.getElementById("requestedBadge").innerText = `${requestedIds.length} ${currentLang === 'tr' ? 'Express Talebi' : 'Express Requests'}`;
 
       const resultsContainer = document.getElementById("matchingPassesContainer");
       resultsContainer.innerHTML = "";
@@ -701,7 +806,7 @@
         resultsContainer.innerHTML = `
           <div class="text-center py-8 text-slate-400 border border-dashed rounded-xl p-4">
             <i data-lucide="ticket" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
-            <p class="text-xs font-semibold">Planınızda 'Express İste' seçili ünite bulunmuyor. Sol taraftan seçim yapın.</p>
+            <p class="text-xs font-semibold">${t.noExpressRequested}</p>
           </div>
         `;
         lucide.createIcons();
@@ -750,7 +855,7 @@
             <span class="text-[11px] font-black uppercase px-2 py-0.5 rounded ${
               isFullMatch ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
             }">
-              ${isFullMatch ? '✓ %100 Eşleşti (Hepsini İçerir)' : `${matchCount}/${totalReq} Eşleşme`}
+              ${isFullMatch ? t.fullMatchBadge : `${matchCount}/${totalReq} ${t.matchBadge}`}
             </span>
             <span class="text-xs font-black text-slate-900">${pass.price}</span>
           </div>
@@ -759,12 +864,12 @@
           
           <div class="mt-2 text-[11px] text-slate-600 space-y-1">
             <div class="flex items-center gap-1 font-semibold ${pass.snwTimedEntry ? 'text-blue-700' : 'text-slate-400'}">
-              <span>${pass.snwTimedEntry ? '🍄 Super Nintendo World Zamanlı Giriş Dahil' : '⚠️ Nintendo Giriş Garantisi Yok'}</span>
+              <span>${pass.snwTimedEntry ? t.snwIncluded : t.snwNotIncluded}</span>
             </div>
           </div>
 
           <div class="mt-3 pt-2.5 border-t border-slate-200/80 text-[11px] text-slate-500">
-            <span class="font-bold text-slate-700">Paket Kapsamı:</span>
+            <span class="font-bold text-slate-700">${t.passPackageScope}</span>
             <p class="mt-0.5 leading-relaxed italic text-[11px] text-slate-600">
               ${pass.rawList.join(" • ")}
             </p>
@@ -777,13 +882,14 @@
     }
 
     function renderItinerary() {
+      const t = translations[currentLang];
       const container = document.getElementById("itineraryList");
       container.innerHTML = "";
 
       if (userPlan.length === 0) {
         container.innerHTML = `
           <div class="text-center py-8 text-slate-400 border border-dashed rounded-xl">
-            <p class="text-xs">Günlük planınız boş. Aşağıdan aktivite ekleyin.</p>
+            <p class="text-xs">${t.emptyPlan}</p>
           </div>
         `;
         return;
@@ -791,6 +897,7 @@
 
       userPlan.forEach((item, index) => {
         const attr = attractionCatalog.find(a => a.id === item.attractionId);
+        const name = getAttractionName(attr);
         const card = document.createElement("div");
         card.className = "flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl gap-2 hover:border-slate-300 transition";
 
@@ -812,7 +919,7 @@
             <input type="time" value="${item.time}" onchange="updateTime(${index}, this.value)" class="text-xs font-bold border border-slate-300 rounded px-1.5 py-0.5 bg-white">
 
             <div>
-              <h4 class="font-bold text-slate-900 text-xs sm:text-sm leading-tight">${attr ? attr.name : "Aktivite"}</h4>
+              <h4 class="font-bold text-slate-900 text-xs sm:text-sm leading-tight">${name || "Activity"}</h4>
               <span class="text-[10px] text-slate-500">${attr ? attr.zone : ""}</span>
             </div>
           </div>
@@ -821,10 +928,10 @@
             ${attr && !attr.noExpress ? `
               <label class="flex items-center space-x-1.5 cursor-pointer bg-white px-2 py-1 rounded border border-blue-200 text-xs font-bold text-blue-900 hover:bg-blue-50">
                 <input type="checkbox" ${item.expressChecked ? 'checked' : ''} onchange="toggleExpress(${index})" class="rounded text-blue-600">
-                <span>⚡ Express İste</span>
+                <span>${t.requestExpressLabel}</span>
               </label>
             ` : `
-              <span class="text-[10px] text-slate-400 bg-slate-200/60 px-2 py-0.5 rounded font-medium">Express Yok (Standby/QR)</span>
+              <span class="text-[10px] text-slate-400 bg-slate-200/60 px-2 py-0.5 rounded font-medium">${t.standbyOnlyLabel}</span>
             `}
 
             <button onclick="removeFromPlan(${index})" class="text-slate-400 hover:text-rose-600 p-1">
@@ -839,6 +946,7 @@
     }
 
     function renderDirectory() {
+      const t = translations[currentLang];
       const zone = document.getElementById("zoneFilter").value;
       const grid = document.getElementById("directoryGrid");
       grid.innerHTML = "";
@@ -854,16 +962,16 @@
             <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold mb-1">
               <span>${attr.zone}</span>
               <span class="uppercase text-[10px] font-bold px-1.5 py-0.5 rounded ${attr.noExpress ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}">
-                ${attr.noExpress ? 'Yemek/Standby' : 'Express Destekli'}
+                ${attr.noExpress ? t.diningStandbyTag : t.expressEligibleTag}
               </span>
             </div>
-            <h4 class="font-bold text-slate-900 text-sm">${attr.name}</h4>
+            <h4 class="font-bold text-slate-900 text-sm">${getAttractionName(attr)}</h4>
           </div>
 
           <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span class="text-[11px] text-slate-500">${attr.category.toUpperCase()}</span>
+            <span class="text-[11px] text-slate-500 uppercase">${attr.category}</span>
             <button onclick="addToPlan('${attr.id}')" class="px-2.5 py-1.5 bg-slate-900 hover:bg-blue-600 text-white font-bold text-xs rounded-lg transition flex items-center gap-1">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Plana Ekle
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> ${t.addToPlanBtn}
             </button>
           </div>
         `;
@@ -874,9 +982,7 @@
     }
 
     window.addEventListener("DOMContentLoaded", () => {
-      renderDirectory();
-      renderItinerary();
-      findMatchingPasses();
+      setLanguage(currentLang);
     });
   </script>
 </body>
