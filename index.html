@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USJ Canlı Express Pass Eşleştirici & Günlük Planlayıcı</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .hero-bg {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #06b6d4 100%);
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
+
+  <header class="hero-bg text-white shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl">⚡</span>
+        <h1 class="text-lg sm:text-xl font-black tracking-tight">USJ Canlı Express Bilet Eşleştirici</h1>
+      </div>
+      <div class="text-xs font-semibold bg-white/20 px-3 py-1.5 rounded-lg backdrop-blur-sm">
+        Resmi Sistem Verisiyle Entegre
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+
+    <!-- Üst Panel: Günlük Planım & Express Bilet Eşleştirme Sonucu -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- Sol / Orta: Günlük Akış & Express İşaretleme (7 Kolon) -->
+      <div class="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 gap-3">
+          <div>
+            <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+              <i data-lucide="list-ordered" class="w-5 h-5 text-blue-600"></i> Gün Planım & Express Seçimi
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Hızlı geçmek istediğiniz ünitelerde <strong>⚡ Express İste</strong> kutusunu işaretleyin.
+            </p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <!-- Kopyalama Butonu -->
+            <button onclick="copyPlanToClipboard()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span id="copyBtnText">Planı Kopyala</span>
+            </button>
+            <button onclick="clearPlan()" class="text-xs font-bold text-rose-600 hover:text-rose-700 px-2 py-1.5">Temizle</button>
+          </div>
+        </div>
+
+        <div id="itineraryList" class="space-y-2.5">
+          <!-- Dinamik Liste -->
+        </div>
+
+        <div class="pt-2">
+          <a href="#attractionDirectory" class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> Aşağıdaki Aktivite Listesinden Plana Ekle
+          </a>
+        </div>
+      </div>
+
+      <!-- Sağ: Akıllı Bilet Eşleştirici (5 Kolon) -->
+      <div class="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 sticky top-20">
+        <div class="border-b pb-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
+              <i data-lucide="check-check" class="w-5 h-5 text-emerald-600"></i> Uygun Express Biletler
+            </h3>
+            <span id="requestedBadge" class="text-xs font-bold px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
+              0 Express Talebi
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">İşaretlediğiniz ünitelerin tamamını içeren resmi bilet paketleri:</p>
+        </div>
+
+        <div id="matchingPassesContainer" class="space-y-3.5 max-h-[600px] overflow-y-auto pr-1">
+          <!-- Otomatik Eşleşen Bilet Kartları -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Alt Panel: Tüm Aktiviteler Kataloğu -->
+    <section id="attractionDirectory" class="space-y-6">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h3 class="text-2xl font-black text-slate-900">Aktivite & Ünite Listesi</h3>
+          <p class="text-xs text-slate-500 mt-1">Planınıza eklemek istediğiniz aktiviteleri seçin.</p>
+        </div>
+
+        <div class="flex gap-2">
+          <select id="zoneFilter" onchange="renderDirectory()" class="text-xs border border-slate-300 rounded-lg p-2 bg-white">
+            <option value="all">Tüm Alanlar</option>
+            <option value="Super Nintendo World">Super Nintendo World</option>
+            <option value="Harry Potter">The Wizarding World of Harry Potter</option>
+            <option value="Minion Park">Minion Park</option>
+            <option value="Jurassic Park">Jurassic Park</option>
+            <option value="Hollywood / NY">Hollywood / New York</option>
+            <option value="WaterWorld / Shows">Canlı Şovlar & Su Dünyası</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="directoryGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Aktivite Kartları -->
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // 1. Siteden çıkarılan tam Express Pass veri tabanı
+    const expressPassCatalog = [
+      {
+        id: "premium-unlimited",
+        name: "Universal Express Pass ~Premium Unlimited~",
+        tier: "Premium",
+        price: "¥99,000〜",
+        snwTimedEntry: true,
+        isUniversalPremium: true,
+        attractionGroups: [],
+        rawList: ["Experience all attractions", "Includes Timed Entry Tickets"]
+      },
+      {
+        id: "premium-p30",
+        name: "Universal Express Pass Premium～P30",
+        tier: "Premium",
+        price: "¥44,000〜",
+        snwTimedEntry: true,
+        isUniversalPremium: true,
+        attractionGroups: [],
+        rawList: ["Experience all attractions", "Includes Timed Entry Tickets"]
+      },
+      {
+        id: "premium-p29",
+        name: "Universal Express Pass Premium～P29",
+        tier: "Premium",
+        price: "¥41,000〜",
+        snwTimedEntry: true,
+        isUniversalPremium: true,
+        attractionGroups: [],
+        rawList: ["Experience all attractions", "Includes Timed Entry Tickets"]
+      },
+      {
+        id: "pass-8-minecart-flyingdino",
+        name: "Universal Express Pass 8: Mine Cart & The Flying Dinosaur Special",
+        tier: "Express 8",
+        price: "¥25,900〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mario-kart"],
+          ["yoshi"],
+          ["mine-cart"],
+          ["potter-forbidden"],
+          ["minion-blast"],
+          ["hippogriff"],
+          ["flying-dinosaur", "hollywood-dream", "minion-mayhem"],
+          ["jaws", "jurassic-ride"]
+        ],
+        rawList: [
+          "MarioKart: Koopa's Challenge", "Yoshi's Adventure", "Mine Cart Madness",
+          "Harry Potter and the Forbidden Journey", "Illumination’s Villain-Con Minion Blast",
+          "Flight of the Hippogriff", "The Flying Dinosaur / Hollywood Dream / Minion Mayhem (either one)",
+          "Jaws / Jurassic Park - The Ride (either one)"
+        ]
+      },
+      {
+        id: "pass-8-minion-minecart",
+        name: "Universal Express Pass 8～Minion ＆ MineCart Special～",
+        tier: "Express 8",
+        price: "¥23,900〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mario-kart"],
+          ["yoshi"],
+          ["mine-cart"],
+          ["potter-forbidden"],
+          ["hippogriff"],
+          ["minion-blast"],
+          ["flying-dinosaur", "minion-mayhem"],
+          ["jaws", "jurassic-ride"]
+        ],
+        rawList: [
+          "Mario Kart: Koopa's Challenge", "Yoshi's Adventure", "Mine Cart Madness",
+          "Harry Potter and the Forbidden Journey", "Flight of the Hippogriff",
+          "Illumination’s Villain-Con Minion Blast", "The Flying Dinosaur / Despicable Me: Minion Mayhem (either one)",
+          "JAWS / Jurassic Park - The Ride (either one)"
+        ]
+      },
+      {
+        id: "pass-4plus1-race-flyingdino",
+        name: "Universal Express Pass 4+1: One More Race & The Flying Dinosaur",
+        tier: "Express 4+1",
+        price: "¥22,900〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mario-kart"],
+          ["potter-forbidden"],
+          ["hollywood-dream"],
+          ["flying-dinosaur"]
+        ],
+        rawList: [
+          "MarioKart: Koopa's Challenge (2 kez)", "Harry Potter and the Forbidden Journey",
+          "Hollywood Dream - The Ride", "The Flying Dinosaur"
+        ]
+      },
+      {
+        id: "pass-7-minecart-selection",
+        name: "Universal Express Pass 7～Minecart & Selection～",
+        tier: "Express 7",
+        price: "¥21,800〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mario-kart"],
+          ["yoshi"],
+          ["mine-cart"],
+          ["potter-forbidden"],
+          ["hippogriff"],
+          ["flying-dinosaur", "minion-mayhem"],
+          ["jaws", "jurassic-ride"]
+        ],
+        rawList: [
+          "MarioKart: Koopa's Challenge", "Yoshi's Adventure", "Mine Cart Madness",
+          "Harry Potter and the Forbidden Journey", "Flight of the Hippogriff",
+          "The Flying Dinosaur / Minion Mayhem (either one)", "JAWS / Jurassic Park (either one)"
+        ]
+      },
+      {
+        id: "pass-5-race-minecart",
+        name: "Universal Express Pass 5～Race ＆ Minecart Special～",
+        tier: "Express 5",
+        price: "¥18,900〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mario-kart"],
+          ["mine-cart"],
+          ["potter-forbidden"],
+          ["minion-blast"],
+          ["flying-dinosaur"]
+        ],
+        rawList: [
+          "Mario Kart: Koopa's Challenge", "Mine Cart Madness", "Harry Potter and the Forbidden Journey",
+          "Illumination’s Villain-Con Minion Blast", "The Flying Dinosaur"
+        ]
+      },
+      {
+        id: "pass-4-minecart-jurassic",
+        name: "Universal Express Pass 4~Minecart & Jurassic Park～",
+        tier: "Express 4",
+        price: "¥16,800〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["yoshi"],
+          ["mine-cart"],
+          ["minion-mayhem"],
+          ["jurassic-ride", "jaws"]
+        ],
+        rawList: [
+          "Yoshi's Adventure", "Mine Cart Madness", "Despicable Me: Minion Mayhem",
+          "Jurassic Park - The Ride / JAWS (either one)"
+        ]
+      },
+      {
+        id: "pass-4-minions-race",
+        name: "Universal Express Pass 4 - Minions & Race",
+        tier: "Express 4",
+        price: "¥16,800〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mario-kart"],
+          ["minion-mayhem"],
+          ["detective-conan"],
+          ["potter-forbidden", "flying-dinosaur"]
+        ],
+        rawList: [
+          "MarioKart: Koopa's Challenge", "Despicable Me: Minion Mayhem",
+          "Detective Conan 4-D Live Show", "Harry Potter and the Forbidden Journey / The Flying Dinosaur (either one)"
+        ]
+      },
+      {
+        id: "pass-4-theater-flyingdino",
+        name: "Universal Express Pass 4: Theater & The Flying Dinosaur",
+        tier: "Express 4",
+        price: "¥14,800〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mario-kart"],
+          ["hollywood-backdrop"],
+          ["detective-conan"],
+          ["potter-forbidden", "flying-dinosaur"]
+        ],
+        rawList: [
+          "MarioKart: Koopa's Challenge", "Hollywood Dream: Backdrop",
+          "Detective Conan 4-D Live Show", "Harry Potter and the Forbidden Journey / The Flying Dinosaur (either one)"
+        ]
+      },
+      {
+        id: "pass-4-minion-hollywood",
+        name: "Universal Express Pass 4~Minion & Hollywood Dream The Ride～",
+        tier: "Express 4",
+        price: "¥14,800〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mine-cart"],
+          ["potter-forbidden"],
+          ["minion-mayhem"],
+          ["hollywood-dream", "jaws"]
+        ],
+        rawList: [
+          "Mine Cart Madness", "Harry Potter and the Forbidden Journey",
+          "Despicable Me: Minion Mayhem", "Hollywood Dream - The Ride / JAWS (either one)"
+        ]
+      },
+      {
+        id: "pass-4-minions-theater",
+        name: "Universal Express Pass 4: Minions & Theater",
+        tier: "Express 4",
+        price: "¥14,800〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["yoshi"],
+          ["minion-mayhem"],
+          ["minion-blast"],
+          ["jaws", "detective-conan"]
+        ],
+        rawList: [
+          "Yoshi's Adventure", "Despicable Me: Minion Mayhem",
+          "Illumination’s Villain-Con Minion Blast", "JAWS / Detective Conan 4-D (either one)"
+        ]
+      },
+      {
+        id: "pass-4-race-theater",
+        name: "Universal Express Pass 4: Race & Theater",
+        tier: "Express 4",
+        price: "¥14,800〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mario-kart"],
+          ["yoshi"],
+          ["potter-forbidden"],
+          ["minion-mayhem", "detective-conan"]
+        ],
+        rawList: [
+          "MarioKart: Koopa's Challenge", "Yoshi's Adventure",
+          "Harry Potter and the Forbidden Journey", "Despicable Me: Minion Mayhem / Detective Conan 4-D (either one)"
+        ]
+      },
+      {
+        id: "pass-5-race-minion",
+        name: "Universal Express Pass 5～Race ＆ Minion Special～",
+        tier: "Express 5",
+        price: "¥14,700〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mario-kart"],
+          ["potter-forbidden"],
+          ["minion-blast"],
+          ["minion-mayhem"],
+          ["jaws", "jurassic-ride"]
+        ],
+        rawList: [
+          "Mario Kart: Koopa's Challenge", "Harry Potter and the Forbidden Journey",
+          "Illumination’s Villain-Con Minion Blast", "Despicable Me: Minion Mayhem",
+          "JAWS / Jurassic Park - The Ride (either one)"
+        ]
+      },
+      {
+        id: "pass-4-classic-show",
+        name: "Universal Express Pass 4: Classic & Show",
+        tier: "Express 4",
+        price: "¥13,800〜",
+        snwTimedEntry: false,
+        attractionGroups: [
+          ["jaws"],
+          ["potter-forbidden", "jurassic-ride"],
+          ["show-monsters-live"],
+          ["show-waterworld"]
+        ],
+        rawList: [
+          "JAWS", "Harry Potter and the Forbidden Journey / Jurassic Park (either one)",
+          "Universal Monsters Live: Rock and Roll Show", "WaterWorld"
+        ]
+      },
+      {
+        id: "pass-4-resident-evil-backdrop",
+        name: "Universal Express Pass 4 - Resident Evil Requiem & Backdrop",
+        tier: "Express 4",
+        price: "¥13,800〜",
+        snwTimedEntry: false,
+        attractionGroups: [
+          ["resident-evil"],
+          ["hollywood-backdrop"],
+          ["sadako-curse"],
+          ["jaws", "jurassic-ride"]
+        ],
+        rawList: [
+          "Resident Evil Requiem: The Dive", "Hollywood Dream: Backdrop",
+          "SADAKO'S CURSE: DARK HORROR RIDE", "JAWS / Jurassic Park (either one)"
+        ]
+      },
+      {
+        id: "pass-4-resident-evil-std",
+        name: "Universal Express Pass 4 - Resident Evil Requiem: The Dive",
+        tier: "Express 4",
+        price: "¥13,800〜",
+        snwTimedEntry: false,
+        attractionGroups: [
+          ["resident-evil"],
+          ["potter-forbidden"],
+          ["sadako-curse"],
+          ["jaws"]
+        ],
+        rawList: [
+          "Resident Evil Requiem: The Dive", "Harry Potter and the Forbidden Journey",
+          "SADAKO'S CURSE: DARK HORROR RIDE", "JAWS: Red Alert"
+        ]
+      },
+      {
+        id: "pass-5-adventure-special",
+        name: "Universal Express Pass 5: Adventure Special",
+        tier: "Express 5",
+        price: "¥12,200〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mario-kart"],
+          ["yoshi"],
+          ["flying-dinosaur"],
+          ["minion-mayhem"],
+          ["hollywood-dream"]
+        ],
+        rawList: [
+          "MarioKart: Koopa's Challenge", "Yoshi's Adventure", "The Flying Dinosaur",
+          "Despicable Me: Minion Mayhem", "Hollywood Dream - The Ride"
+        ]
+      },
+      {
+        id: "pass-4-halloween-factory",
+        name: "Universal Express Pass 4: Halloween (Factory of Fear)",
+        tier: "Express 4",
+        price: "¥11,800〜",
+        snwTimedEntry: false,
+        attractionGroups: [
+          ["resident-evil"],
+          ["potter-forbidden"],
+          ["jaws"],
+          ["factory-fear"]
+        ],
+        rawList: [
+          "Resident Evil Requiem: The Dive", "Harry Potter and the Forbidden Journey",
+          "JAWS: Red Alert", "Factory of Fear: Zombie Tour"
+        ]
+      },
+      {
+        id: "pass-4-halloween-chainsaw",
+        name: "Universal Express Pass 4: Halloween (Chainsaw Man)",
+        tier: "Express 4",
+        price: "¥11,800〜",
+        snwTimedEntry: false,
+        attractionGroups: [
+          ["jurassic-ride"],
+          ["hollywood-dream"],
+          ["chainsaw-man"],
+          ["factory-fear"]
+        ],
+        rawList: [
+          "Jurassic Park: In the Dark", "Hollywood Dream - The Ride",
+          "Chainsaw Man: The Chaos 4-D", "Factory of Fear: Zombie Tour"
+        ]
+      },
+      {
+        id: "pass-4-halloween-resident-evil",
+        name: "Universal Express Pass 4: Halloween (Resident Evil + Sadako)",
+        tier: "Express 4",
+        price: "¥11,800〜",
+        snwTimedEntry: false,
+        attractionGroups: [
+          ["resident-evil"],
+          ["hollywood-dream"],
+          ["sadako-curse"],
+          ["jurassic-ride"]
+        ],
+        rawList: [
+          "Resident Evil Requiem: The Dive", "Hollywood Dream - The Ride",
+          "SADAKO'S CURSE: DARK HORROR RIDE", "Jurassic Park In the Dark"
+        ]
+      },
+      {
+        id: "pass-4-thrill-max",
+        name: "Universal Express Pass 4 ~Thrill Max~",
+        tier: "Express 4",
+        price: "¥11,800〜",
+        snwTimedEntry: false,
+        attractionGroups: [
+          ["hollywood-backdrop"],
+          ["hollywood-dream"],
+          ["flying-dinosaur"],
+          ["jurassic-ride", "hollywood-dream", "flying-dinosaur"]
+        ],
+        rawList: [
+          "Hollywood Dream - The Ride: Backdrop", "Hollywood Dream - The Ride",
+          "The Flying Dinosaur", "Jurassic Park / Hollywood Dream / The Flying Dinosaur (either one)"
+        ]
+      },
+      {
+        id: "pass-4-backdrop-flyingdino",
+        name: "Universal Express Pass 4: Backdrop & The Flying Dinosaur",
+        tier: "Express 4",
+        price: "¥10,800〜",
+        snwTimedEntry: false,
+        attractionGroups: [
+          ["potter-forbidden"],
+          ["hippogriff"],
+          ["hollywood-backdrop"],
+          ["flying-dinosaur"]
+        ],
+        rawList: [
+          "Harry Potter and the Forbidden Journey", "Flight of the Hippogriff",
+          "Hollywood Dream: Backdrop", "The Flying Dinosaur"
+        ]
+      },
+      {
+        id: "pass-4-race-jaws",
+        name: "Universal Express Pass 4: Race & JAWS",
+        tier: "Express 4",
+        price: "¥10,800〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mario-kart"],
+          ["potter-forbidden"],
+          ["minion-mayhem"],
+          ["jaws", "jurassic-ride"]
+        ],
+        rawList: [
+          "MarioKart: Koopa's Challenge", "Harry Potter and the Forbidden Journey",
+          "Despicable Me: Minion Mayhem", "JAWS / Jurassic Park (either one)"
+        ]
+      },
+      {
+        id: "pass-4-minecart-jaws",
+        name: "Universal Express Pass 4: Mine Cart & JAWS",
+        tier: "Express 4",
+        price: "¥10,800〜",
+        snwTimedEntry: true,
+        attractionGroups: [
+          ["mario-kart"],
+          ["mine-cart"],
+          ["potter-forbidden", "flying-dinosaur"],
+          ["jurassic-ride", "jaws"]
+        ],
+        rawList: [
+          "MarioKart: Koopa's Challenge", "Mine Cart Madness",
+          "Harry Potter and the Forbidden Journey / The Flying Dinosaur (either one)",
+          "Jurassic Park - The Ride / JAWS (either one)"
+        ]
+      }
+    ];
+
+    // 2. Parktaki Tüm Aktiviteler Kataloğu
+    const attractionCatalog = [
+      // Nintendo
+      { id: "mario-kart", name: "Mario Kart: Koopa's Challenge", zone: "Super Nintendo World", category: "ride" },
+      { id: "mine-cart", name: "Mine Cart Madness (Donkey Kong)", zone: "Super Nintendo World", category: "ride" },
+      { id: "yoshi", name: "Yoshi's Adventure", zone: "Super Nintendo World", category: "ride" },
+      { id: "toad-cafe", name: "Kinopio's Cafe (Toad Cafe)", zone: "Super Nintendo World", category: "dining", noExpress: true },
+      { id: "power-up-band", name: "Power-Up Band Key Challenges", zone: "Super Nintendo World", category: "toy", noExpress: true },
+
+      // Harry Potter
+      { id: "potter-forbidden", name: "Harry Potter and the Forbidden Journey", zone: "Harry Potter", category: "ride" },
+      { id: "hippogriff", name: "Flight of the Hippogriff", zone: "Harry Potter", category: "ride" },
+      { id: "three-brooms", name: "Three Broomsticks & Butterbeer", zone: "Harry Potter", category: "dining", noExpress: true },
+
+      // Minion
+      { id: "minion-mayhem", name: "Despicable Me: Minion Mayhem", zone: "Minion Park", category: "ride" },
+      { id: "minion-blast", name: "Illumination’s Villain-Con Minion Blast", zone: "Minion Park", category: "ride" },
+
+      // Jurassic Park
+      { id: "flying-dinosaur", name: "The Flying Dinosaur", zone: "Jurassic Park", category: "ride" },
+      { id: "jurassic-ride", name: "Jurassic Park - The Ride", zone: "Jurassic Park", category: "ride" },
+
+      // Hollywood & New York
+      { id: "hollywood-dream", name: "Hollywood Dream - The Ride", zone: "Hollywood / NY", category: "ride" },
+      { id: "hollywood-backdrop", name: "Hollywood Dream: Backdrop", zone: "Hollywood / NY", category: "ride" },
+      { id: "detective-conan", name: "Detective Conan 4-D Live Show", zone: "Hollywood / NY", category: "show" },
+      { id: "jaws", name: "JAWS (Boat Tour)", zone: "Hollywood / NY", category: "ride" },
+
+      // Halloween & Events
+      { id: "resident-evil", name: "Resident Evil Requiem: The Dive", zone: "Hollywood / NY", category: "ride" },
+      { id: "sadako-curse", name: "SADAKO'S CURSE: DARK HORROR RIDE", zone: "Hollywood / NY", category: "ride" },
+      { id: "factory-fear", name: "Factory of Fear: Zombie Tour", zone: "Hollywood / NY", category: "show" },
+      { id: "chainsaw-man", name: "Chainsaw Man: The Chaos 4-D", zone: "Hollywood / NY", category: "show" },
+
+      // Şovlar & Su Dünyası
+      { id: "show-waterworld", name: "WaterWorld: Canlı Su & Dublör Şovu", zone: "WaterWorld / Shows", category: "show" },
+      { id: "show-monsters-live", name: "Universal Monsters Live Rock & Roll", zone: "WaterWorld / Shows", category: "show" }
+    ];
+
+    // Varsayılan Kullanıcı Planı
+    let userPlan = [
+      { uid: "p-1", attractionId: "mario-kart", time: "09:30", expressChecked: true },
+      { uid: "p-2", attractionId: "mine-cart", time: "11:00", expressChecked: true },
+      { uid: "p-3", attractionId: "toad-cafe", time: "12:30", expressChecked: false },
+      { uid: "p-4", attractionId: "potter-forbidden", time: "15:00", expressChecked: true }
+    ];
+
+    // Metin Kopyalama Fonksiyonu
+    function copyPlanToClipboard() {
+      if (userPlan.length === 0) {
+        alert("Kopyalanacak bir aktivite bulunmuyor.");
+        return;
+      }
+
+      // İstenen format: - 09:00 | Aktivite Adı
+      const formattedLines = userPlan.map(item => {
+        const attr = attractionCatalog.find(a => a.id === item.attractionId);
+        const name = attr ? attr.name : "Aktivite";
+        const expressTag = item.expressChecked ? " (⚡ Express)" : "";
+        return `- ${item.time} | ${name}${expressTag}`;
+      });
+
+      const textToCopy = formattedLines.join("\n");
+
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        const btnText = document.getElementById("copyBtnText");
+        const original = btnText.innerText;
+        btnText.innerText = "Kopyalandı! ✓";
+        setTimeout(() => {
+          btnText.innerText = original;
+        }, 2000);
+      }).catch(err => {
+        console.error("Panoya kopyalanamadı:", err);
+      });
+    }
+
+    function addToPlan(attrId) {
+      const attr = attractionCatalog.find(a => a.id === attrId);
+      if (!attr) return;
+
+      userPlan.push({
+        uid: "p-" + Date.now(),
+        attractionId: attr.id,
+        time: "12:00",
+        expressChecked: !attr.noExpress
+      });
+
+      renderItinerary();
+      findMatchingPasses();
+    }
+
+    function removeFromPlan(index) {
+      userPlan.splice(index, 1);
+      renderItinerary();
+      findMatchingPasses();
+    }
+
+    function toggleExpress(index) {
+      userPlan[index].expressChecked = !userPlan[index].expressChecked;
+      renderItinerary();
+      findMatchingPasses();
+    }
+
+    function updateTime(index, value) {
+      userPlan[index].time = value;
+    }
+
+    function moveItem(index, dir) {
+      if (dir === 'up' && index > 0) {
+        const t = userPlan[index];
+        userPlan[index] = userPlan[index - 1];
+        userPlan[index - 1] = t;
+      } else if (dir === 'down' && index < userPlan.length - 1) {
+        const t = userPlan[index];
+        userPlan[index] = userPlan[index + 1];
+        userPlan[index + 1] = t;
+      }
+      renderItinerary();
+    }
+
+    function clearPlan() {
+      if (confirm("Tüm günlük plan temizlensin mi?")) {
+        userPlan = [];
+        renderItinerary();
+        findMatchingPasses();
+      }
+    }
+
+    function findMatchingPasses() {
+      const requestedIds = userPlan
+        .filter(item => item.expressChecked)
+        .map(item => item.attractionId);
+
+      document.getElementById("requestedBadge").innerText = `${requestedIds.length} Express Talebi`;
+
+      const resultsContainer = document.getElementById("matchingPassesContainer");
+      resultsContainer.innerHTML = "";
+
+      if (requestedIds.length === 0) {
+        resultsContainer.innerHTML = `
+          <div class="text-center py-8 text-slate-400 border border-dashed rounded-xl p-4">
+            <i data-lucide="ticket" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
+            <p class="text-xs font-semibold">Planınızda 'Express İste' seçili ünite bulunmuyor. Sol taraftan seçim yapın.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      const passScores = expressPassCatalog.map(pass => {
+        if (pass.isUniversalPremium) {
+          return { pass, matchCount: requestedIds.length, totalReq: requestedIds.length, isFullMatch: true };
+        }
+
+        let coveredSet = new Set();
+        pass.attractionGroups.forEach(group => {
+          requestedIds.forEach(reqId => {
+            if (group.includes(reqId)) {
+              coveredSet.add(reqId);
+            }
+          });
+        });
+
+        const matchCount = coveredSet.size;
+        const isFullMatch = matchCount === requestedIds.length;
+
+        return { pass, matchCount, totalReq: requestedIds.length, isFullMatch };
+      });
+
+      passScores.sort((a, b) => {
+        if (a.isFullMatch && !b.isFullMatch) return -1;
+        if (!a.isFullMatch && b.isFullMatch) return 1;
+        return b.matchCount - a.matchCount;
+      });
+
+      passScores.forEach(res => {
+        const { pass, matchCount, totalReq, isFullMatch } = res;
+        if (matchCount === 0) return;
+
+        const card = document.createElement("div");
+        card.className = `p-4 rounded-xl border transition ${
+          isFullMatch 
+            ? 'bg-emerald-50/70 border-emerald-300 shadow-sm ring-1 ring-emerald-400' 
+            : 'bg-white border-slate-200 opacity-80'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2 mb-1.5">
+            <span class="text-[11px] font-black uppercase px-2 py-0.5 rounded ${
+              isFullMatch ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
+            }">
+              ${isFullMatch ? '✓ %100 Eşleşti (Hepsini İçerir)' : `${matchCount}/${totalReq} Eşleşme`}
+            </span>
+            <span class="text-xs font-black text-slate-900">${pass.price}</span>
+          </div>
+
+          <h4 class="font-black text-sm text-slate-900 leading-snug">${pass.name}</h4>
+          
+          <div class="mt-2 text-[11px] text-slate-600 space-y-1">
+            <div class="flex items-center gap-1 font-semibold ${pass.snwTimedEntry ? 'text-blue-700' : 'text-slate-400'}">
+              <span>${pass.snwTimedEntry ? '🍄 Super Nintendo World Zamanlı Giriş Dahil' : '⚠️ Nintendo Giriş Garantisi Yok'}</span>
+            </div>
+          </div>
+
+          <div class="mt-3 pt-2.5 border-t border-slate-200/80 text-[11px] text-slate-500">
+            <span class="font-bold text-slate-700">Paket Kapsamı:</span>
+            <p class="mt-0.5 leading-relaxed italic text-[11px] text-slate-600">
+              ${pass.rawList.join(" • ")}
+            </p>
+          </div>
+        `;
+        resultsContainer.appendChild(card);
+      });
+
+      lucide.createIcons();
+    }
+
+    function renderItinerary() {
+      const container = document.getElementById("itineraryList");
+      container.innerHTML = "";
+
+      if (userPlan.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-slate-400 border border-dashed rounded-xl">
+            <p class="text-xs">Günlük planınız boş. Aşağıdan aktivite ekleyin.</p>
+          </div>
+        `;
+        return;
+      }
+
+      userPlan.forEach((item, index) => {
+        const attr = attractionCatalog.find(a => a.id === item.attractionId);
+        const card = document.createElement("div");
+        card.className = "flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl gap-2 hover:border-slate-300 transition";
+
+        card.innerHTML = `
+          <div class="flex items-center space-x-3 w-full sm:w-auto">
+            <div class="flex flex-col space-y-0.5">
+              <button onclick="moveItem(${index}, 'up')" class="p-0.5 text-slate-400 hover:text-slate-800 ${index === 0 ? 'opacity-20 cursor-not-allowed' : ''}">
+                <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="moveItem(${index}, 'down')" class="p-0.5 text-slate-400 hover:text-slate-800 ${index === userPlan.length - 1 ? 'opacity-20 cursor-not-allowed' : ''}">
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+
+            <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-[11px]">
+              ${index + 1}
+            </span>
+
+            <input type="time" value="${item.time}" onchange="updateTime(${index}, this.value)" class="text-xs font-bold border border-slate-300 rounded px-1.5 py-0.5 bg-white">
+
+            <div>
+              <h4 class="font-bold text-slate-900 text-xs sm:text-sm leading-tight">${attr ? attr.name : "Aktivite"}</h4>
+              <span class="text-[10px] text-slate-500">${attr ? attr.zone : ""}</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-3 pt-1.5 sm:pt-0 border-t sm:border-0 border-slate-200">
+            ${attr && !attr.noExpress ? `
+              <label class="flex items-center space-x-1.5 cursor-pointer bg-white px-2 py-1 rounded border border-blue-200 text-xs font-bold text-blue-900 hover:bg-blue-50">
+                <input type="checkbox" ${item.expressChecked ? 'checked' : ''} onchange="toggleExpress(${index})" class="rounded text-blue-600">
+                <span>⚡ Express İste</span>
+              </label>
+            ` : `
+              <span class="text-[10px] text-slate-400 bg-slate-200/60 px-2 py-0.5 rounded font-medium">Express Yok (Standby/QR)</span>
+            `}
+
+            <button onclick="removeFromPlan(${index})" class="text-slate-400 hover:text-rose-600 p-1">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      lucide.createIcons();
+    }
+
+    function renderDirectory() {
+      const zone = document.getElementById("zoneFilter").value;
+      const grid = document.getElementById("directoryGrid");
+      grid.innerHTML = "";
+
+      const filtered = attractionCatalog.filter(a => zone === 'all' || a.zone === zone);
+
+      filtered.forEach(attr => {
+        const card = document.createElement("div");
+        card.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3";
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between text-[11px] text-slate-400 font-semibold mb-1">
+              <span>${attr.zone}</span>
+              <span class="uppercase text-[10px] font-bold px-1.5 py-0.5 rounded ${attr.noExpress ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}">
+                ${attr.noExpress ? 'Yemek/Standby' : 'Express Destekli'}
+              </span>
+            </div>
+            <h4 class="font-bold text-slate-900 text-sm">${attr.name}</h4>
+          </div>
+
+          <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+            <span class="text-[11px] text-slate-500">${attr.category.toUpperCase()}</span>
+            <button onclick="addToPlan('${attr.id}')" class="px-2.5 py-1.5 bg-slate-900 hover:bg-blue-600 text-white font-bold text-xs rounded-lg transition flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Plana Ekle
+            </button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      lucide.createIcons();
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      renderDirectory();
+      renderItinerary();
+      findMatchingPasses();
+    });
+  </script>
+</body>
+</html>
